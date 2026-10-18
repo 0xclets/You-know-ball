@@ -23,6 +23,7 @@ enum LedgerAccountKind {
   USER_CASH
   PLATFORM_BONUS_CLEARING
   PLATFORM_CASH_CLEARING
+  PLATFORM_FEE_REVENUE
 }
 enum LedgerTransactionType {
   SIGNUP_BONUS
