@@ -1,5 +1,5 @@
 const configuredApi = process.env.NEXT_PUBLIC_API_URL;
-export const API_BASE = configuredApi ? (/^https?:\/\//i.test(configuredApi) ? configuredApi : 'https://' + configuredApi) : 'http://localhost:4000';
+export const API_BASE = configuredApi ? (/^https?:\/\//i.test(configuredApi) ? configuredApi : 'https://' + configuredApi) : (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:4000');
 
 export async function authenticatedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const access = sessionStorage.getItem('ykbAccessToken');
