@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { authenticatedFetch } from '../lib/api';
+import { authenticatedFetch } from '../../lib/api';
 
 type Wallet = { currency: string; bonusBalanceKobo: string; cashBalanceKobo: string; bonusBalanceNaira: string; cashBalanceNaira: string; realMoneyEnabled: boolean };
 export default function WalletPage() {
