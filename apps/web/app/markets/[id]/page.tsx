@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { authenticatedFetch } from '../../../lib/api';
+import { API_BASE, authenticatedFetch } from '../../../lib/api';
 
 type Market = { id: string; playerName: string; teamName: string; opponentName: string; competition: string; statLabel: string; lineValue: string; kickoffAt: string; status: string; liquidityNaira: string; feeBps: number; overShares: string; underShares: string; overPrice: number; underPrice: number };
 type TradeResult = { trade: { side: string; outcome: string; shares: string; grossAmountKobo: string; feeKobo: string; netAmountKobo: string }; duplicate: boolean };
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export default function MarketDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -19,7 +18,7 @@ export default function MarketDetailPage() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<TradeResult | null>(null);
   useEffect(() => {
-    fetch(API + '/markets/' + id).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.message ?? 'Market unavailable.'); setMarket(d); }).catch(e => setError(e instanceof Error ? e.message : 'Could not load market.'));
+    fetch(API_BASE + '/markets/' + id).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.message ?? 'Market unavailable.'); setMarket(d); }).catch(e => setError(e instanceof Error ? e.message : 'Could not load market.'));
   }, [id]);
   async function submitTrade(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setResult(null);
