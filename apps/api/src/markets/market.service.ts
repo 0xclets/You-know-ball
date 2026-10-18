@@ -39,12 +39,13 @@ export class MarketService {
   async trade(userId: string, marketId: string, input: TradeInput) {
     if (!Object.values(MarketOutcome).includes(input.outcome)) throw new BadRequestException('Choose Over or Under.');
     if (!Object.values(TradeSide).includes(input.side)) throw new BadRequestException('Choose Buy or Sell.');
-    const sharesText = String(input.shares ?? '');
-    if (!/^(?:0*[1-9]\d{0,9}|0)\.\d{2}$/.test(sharesText) && !/^[1-9]\d{0,9}$/.test(sharesText)) {
+    const rawShares = String(input.shares ?? '');
+    if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(rawShares)) {
       throw new BadRequestException('Shares must be positive and use at most two decimal places.');
     }
-    const shares = Number(sharesText);
+    const shares = Number(rawShares);
     if (!Number.isFinite(shares) || shares <= 0) throw new BadRequestException('Shares must be greater than zero.');
+    const sharesText = shares.toFixed(2);
     if (typeof input.idempotencyKey !== 'string' || input.idempotencyKey.length < 8 || input.idempotencyKey.length > 120) {
       throw new BadRequestException('Provide a unique request key between 8 and 120 characters.');
     }
