@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { LedgerAccountKind, LedgerTransactionType, MarketOutcome, MarketStatus, Prisma, UserRole, WalletKind } from '@prisma/client';
+import { LedgerAccountKind, LedgerTransactionType, MarketOutcome, MarketStatus, Prisma, WalletKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type CreateMarketInput = {
