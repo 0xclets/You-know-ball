@@ -2,14 +2,9 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { createHash } from 'node:crypto';
 import { LedgerAccountKind, LedgerTransactionType, MarketOutcome, MarketStatus, Prisma, TradeSide, WalletKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { lmsrCostNaira, lmsrPrices } from './lmsr';
 
 type TradeInput = { outcome: MarketOutcome; side: TradeSide; shares: string | number; idempotencyKey: string };
-function lmsrCost(over: number, under: number, liquidityNaira: number): number {
-  const a = over / liquidityNaira;
-  const b = under / liquidityNaira;
-  const max = Math.max(a, b);
-  return liquidityNaira * (max + Math.log(Math.exp(a - max) + Math.exp(b - max)));
-}
 function koboCeil(naira: number): bigint { return BigInt(Math.max(1, Math.ceil(naira * 100 - 1e-9))); }
 function koboFloor(naira: number): bigint { return BigInt(Math.max(1, Math.floor(naira * 100 + 1e-9))); }
 function feeFor(grossKobo: bigint, bps: number): bigint { return (grossKobo * BigInt(bps) + 9999n) / 10000n; }
@@ -17,11 +12,9 @@ function serialMarket(m: { id: string; playerName: string; teamName: string; opp
   const b = m.liquidityNaira.toNumber();
   const over = m.overShares.toNumber();
   const under = m.underShares.toNumber();
-  const cost = lmsrCost(over, under, b);
-  const a = Math.exp(over / b);
-  const c = Math.exp(under / b);
-  const overPrice = a / (a + c);
-  return { ...m, lineValue: m.lineValue.toString(), liquidityNaira: m.liquidityNaira.toString(), overShares: m.overShares.toString(), underShares: m.underShares.toString(), overPrice, underPrice: 1 - overPrice, lmsrCostNaira: cost, feeBps: m.feeBps };
+  const cost = lmsrCostNaira(over, under, b);
+  const { overPrice, underPrice } = lmsrPrices(over, under, b);
+  return { ...m, lineValue: m.lineValue.toString(), liquidityNaira: m.liquidityNaira.toString(), overShares: m.overShares.toString(), underShares: m.underShares.toString(), overPrice, underPrice, lmsrCostNaira: cost, feeBps: m.feeBps };
 }
 
 @Injectable()
@@ -84,12 +77,12 @@ export class MarketService {
         const qUnder = market.underShares.toNumber();
         const q = input.outcome === MarketOutcome.OVER ? qOver : qUnder;
         const b = market.liquidityNaira.toNumber();
-        const currentCost = lmsrCost(qOver, qUnder, b);
+        const currentCost = lmsrCostNaira(qOver, qUnder, b);
         const newQ = input.side === TradeSide.BUY ? q + shares : q - shares;
         if (input.side === TradeSide.SELL && newQ < -1e-9) throw new BadRequestException('You do not hold enough shares to sell.');
         const newOver = input.outcome === MarketOutcome.OVER ? newQ : qOver;
         const newUnder = input.outcome === MarketOutcome.UNDER ? newQ : qUnder;
-        const nextCost = lmsrCost(newOver, newUnder, b);
+        const nextCost = lmsrCostNaira(newOver, newUnder, b);
         const grossKobo = input.side === TradeSide.BUY ? koboCeil(nextCost - currentCost) : koboFloor(currentCost - nextCost);
         const feeKobo = feeFor(grossKobo, market.feeBps);
         const netKobo = input.side === TradeSide.BUY ? grossKobo + feeKobo : grossKobo - feeKobo;
@@ -123,7 +116,7 @@ export class MarketService {
         const ledgerAmount = input.side === TradeSide.BUY ? -netKobo : netKobo;
         await tx.ledgerTransaction.create({
           data: {
-            type: LedgerTransactionType.BET_STAKE,
+            type: input.side === TradeSide.BUY ? LedgerTransactionType.BET_STAKE : LedgerTransactionType.BET_PAYOUT,
             idempotencyKey: 'market-trade-ledger:' + idempotencyKey,
             reference: marketId,
             metadata: { outcome: input.outcome, side: input.side, shares: sharesText },
