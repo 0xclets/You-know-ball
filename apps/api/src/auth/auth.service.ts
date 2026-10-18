@@ -110,6 +110,7 @@ export class AuthService {
       });
       if (consumed.count !== 1) throw new UnauthorizedException('Code is invalid or expired.');
       let user = await tx.user.findUnique({ where: { phoneE164: phone } });
+      if (!user && purpose === OtpPurpose.SIGN_IN) throw new UnauthorizedException('No account found for this number. Create an account first.');
       if (!user) {
         user = await tx.user.create({ data: { phoneE164: phone, phoneVerifiedAt: now } });
         const bonusAccount = await tx.ledgerAccount.create({ data: { kind: LedgerAccountKind.USER_BONUS, userId: user.id } });
