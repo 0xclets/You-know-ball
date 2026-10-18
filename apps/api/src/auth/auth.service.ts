@@ -111,9 +111,11 @@ export class AuthService {
       });
       if (consumed.count !== 1) throw new UnauthorizedException('Code is invalid or expired.');
       const shouldBeAdmin = Boolean(process.env.ADMIN_PHONE_E164 && phone === process.env.ADMIN_PHONE_E164.trim());
+      let isNewUser = false;
       let user = await tx.user.findUnique({ where: { phoneE164: phone } });
       if (!user && purpose === OtpPurpose.SIGN_IN) throw new UnauthorizedException('No account found for this number. Create an account first.');
       if (!user) {
+        isNewUser = true;
         user = await tx.user.create({ data: { phoneE164: phone, phoneVerifiedAt: now, ...(shouldBeAdmin ? { role: 'ADMIN' } : {}) } });
         const bonusAccount = await tx.ledgerAccount.create({ data: { kind: LedgerAccountKind.USER_BONUS, userId: user.id } });
         const clearingAccount = await tx.ledgerAccount.create({ data: { kind: LedgerAccountKind.PLATFORM_BONUS_CLEARING } });
@@ -147,7 +149,7 @@ export class AuthService {
           expiresAt: new Date(Date.now() + Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30) * 86400000),
         },
       });
-      return { user, rawRefresh };
+      return { user, rawRefresh, isNewUser };
     });
 
     const secret = process.env.ACCESS_TOKEN_SECRET;
@@ -162,7 +164,7 @@ export class AuthService {
       refreshToken: result.rawRefresh,
       tokenType: 'Bearer',
       expiresIn: Number(process.env.ACCESS_TOKEN_TTL_SECONDS ?? 900),
-      signupBonusNaira: '1000000.00',
+      ...(result.isNewUser ? { signupBonusNaira: '1000000.00', signupBonusGranted: true } : { signupBonusGranted: false }),
     };
   }
 
@@ -182,12 +184,12 @@ export class AuthService {
     if (token.revokedAt || token.usedAt || token.expiresAt <= now) throw new UnauthorizedException('Refresh token is invalid or expired.');
     const nextRaw = randomBytes(48).toString('base64url');
     const nextHash = tokenHash(nextRaw);
-    await this.prisma.$transaction(async tx => {
+    const rotated = await this.prisma.$transaction(async tx => {
       const used = await tx.refreshToken.updateMany({
         where: { id: token.id, usedAt: null, revokedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },
       });
-      if (used.count !== 1) throw new UnauthorizedException('Refresh token already used.');
+      if (used.count !== 1) return false;
       const next = await tx.refreshToken.create({
         data: {
           userId: token.userId,
@@ -198,7 +200,12 @@ export class AuthService {
         },
       });
       await tx.refreshToken.update({ where: { id: token.id }, data: { replacedById: next.id } });
+      return true;
     });
+    if (!rotated) {
+      await this.prisma.refreshToken.updateMany({ where: { familyId: token.familyId, revokedAt: null }, data: { revokedAt: now } });
+      throw new UnauthorizedException('Refresh token reuse detected. Please sign in again.');
+    }
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: token.userId } });
     const secret = process.env.ACCESS_TOKEN_SECRET;
     if (!secret || secret.length < 32) throw new ServiceUnavailableException('Access token service is not configured.');
