@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
 import { WalletModule } from './wallet/wallet.module';
+import { MarketModule } from './markets/market.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { WalletModule } from './wallet/wallet.module';
     JwtModule.register({ global: true }),
     AuthModule,
     WalletModule,
+    MarketModule,
   ],
   controllers: [HealthController],
 })
