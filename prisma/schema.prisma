@@ -5,6 +5,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+enum UserRole {
+  USER
+  ADMIN
+}
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -39,6 +43,7 @@ model User {
   phoneE164 String @unique @map("phone_e164") @db.VarChar(16)
   phoneVerifiedAt DateTime? @map("phone_verified_at") @db.Timestamptz(6)
   status UserStatus @default(ACTIVE)
+  role UserRole @default(USER)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   otpChallenges OtpChallenge[]
