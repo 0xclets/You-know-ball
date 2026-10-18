@@ -44,28 +44,64 @@ export class AuthService {
       where: { phoneE164: phone, requestedAt: { gt: new Date(Date.now() - cooldownMs) } },
     });
     if (recent > 0) throw new HttpException('Please wait before requesting another code.', HttpStatus.TOO_MANY_REQUESTS);
-    if (process.env.NODE_ENV === 'production' && (!process.env.SMS_PROVIDER_URL || !process.env.SMS_PROVIDER_TOKEN)) {
+    if (!process.env.OTP_HMAC_SECRET || process.env.OTP_HMAC_SECRET.length < 32) {
+      throw new ServiceUnavailableException('OTP service is not configured.');
+    }
+
+    const provider = process.env.SMS_PROVIDER ?? 'generic';
+    const termiiConfigured = Boolean(process.env.TERMII_API_KEY && process.env.TERMII_API_BASE_URL);
+    const genericConfigured = Boolean(process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_TOKEN);
+    const providerConfigured = provider === 'termii' ? termiiConfigured : provider === 'generic' && genericConfigured;
+    if (!providerConfigured && process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') {
       throw new ServiceUnavailableException('SMS delivery is not configured.');
     }
-    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+
     const ttl = Number(process.env.OTP_TTL_SECONDS ?? 300);
+    const maxAttempts = Number(process.env.OTP_MAX_ATTEMPTS ?? 5);
+    let code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+
+    if (provider === 'termii' && termiiConfigured) {
+      const base = process.env.TERMII_API_BASE_URL!.replace(/\/+$/, '');
+      try {
+        const response = await fetch(base + '/api/sms/otp/generate', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            api_key: process.env.TERMII_API_KEY,
+            pin_type: 'NUMERIC',
+            phone_number: phone.replace(/\D/g, ''),
+            pin_attempts: maxAttempts,
+            pin_time_to_live: Math.min(60, Math.max(1, Math.ceil(ttl / 60))),
+            pin_length: 6,
+          }),
+          signal: AbortSignal.timeout(12000),
+        });
+        const payload = await response.json() as { otp?: string | number; pin_id?: string; message?: string };
+        const providerCode = String(payload.otp ?? '');
+        if (!response.ok || !/^\d{6}$/.test(providerCode)) throw new Error(payload.message ?? 'Termii did not return a six-digit OTP.');
+        code = providerCode;
+      } catch {
+        throw new ServiceUnavailableException('Could not deliver verification code. Try again later.');
+      }
+    }
+
     const challenge = await this.prisma.otpChallenge.create({
       data: {
         phoneE164: phone,
         purpose,
         codeDigest: otpDigest(phone, purpose, code),
         expiresAt: new Date(Date.now() + ttl * 1000),
-        maxAttempts: Number(process.env.OTP_MAX_ATTEMPTS ?? 5),
+        maxAttempts,
       },
     });
-    const smsUrl = process.env.SMS_PROVIDER_URL;
-    const smsToken = process.env.SMS_PROVIDER_TOKEN;
-    if (smsUrl && smsToken) {
+
+    if (provider === 'generic' && genericConfigured) {
       try {
-        const response = await fetch(smsUrl, {
+        const response = await fetch(process.env.SMS_PROVIDER_URL!, {
           method: 'POST',
-          headers: { 'content-type': 'application/json', authorization: 'Bearer ' + smsToken },
-          body: JSON.stringify({ to: phone, message: 'Your YKB verification code is ' + code + '. It expires in 5 minutes.' }),
+          headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.SMS_PROVIDER_TOKEN },
+          body: JSON.stringify({ to: phone, message: 'Your YKB verification code is ' + code + '. It expires in ' + Math.ceil(ttl / 60) + ' minutes.' }),
+          signal: AbortSignal.timeout(12000),
         });
         if (!response.ok) throw new Error('SMS provider rejected request');
       } catch {
@@ -74,11 +110,9 @@ export class AuthService {
       }
       return { accepted: true, expiresInSeconds: ttl };
     }
+    if (provider === 'termii' && termiiConfigured) return { accepted: true, expiresInSeconds: ttl };
+
     // Only local development and automated tests may receive the OTP in the response.
-    if (process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') {
-      await this.prisma.otpChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date() } });
-      throw new ServiceUnavailableException('SMS delivery is not configured.');
-    }
     return { accepted: true, expiresInSeconds: ttl, developmentCode: code };
   }
 
