@@ -1,7 +1,8 @@
 import {
   BadRequestException,
   Injectable,
-  TooManyRequestsException,
+  HttpException,
+  HttpStatus,
   UnauthorizedException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -42,7 +43,7 @@ export class AuthService {
     const recent = await this.prisma.otpChallenge.count({
       where: { phoneE164: phone, requestedAt: { gt: new Date(Date.now() - cooldownMs) } },
     });
-    if (recent > 0) throw new TooManyRequestsException('Please wait before requesting another code.');
+    if (recent > 0) throw new HttpException('Please wait before requesting another code.', HttpStatus.TOO_MANY_REQUESTS);
     if (process.env.NODE_ENV === 'production' && (!process.env.SMS_PROVIDER_URL || !process.env.SMS_PROVIDER_TOKEN)) {
       throw new ServiceUnavailableException('SMS delivery is not configured.');
     }
