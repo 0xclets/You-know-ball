@@ -63,5 +63,5 @@ export class AuthController {
   }
 
   @Get('status')
-  status() { return { configured: Boolean(process.env.OTP_HMAC_SECRET && process.env.ACCESS_TOKEN_SECRET), smsDelivery: Boolean(process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_TOKEN) }; }
+  status() { return { configured: Boolean(process.env.OTP_HMAC_SECRET && process.env.ACCESS_TOKEN_SECRET), smsDelivery: process.env.SMS_PROVIDER === 'termii' ? Boolean(process.env.TERMII_API_KEY && process.env.TERMII_API_BASE_URL) : Boolean(process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_TOKEN) }; }
 }
