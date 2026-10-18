@@ -2,8 +2,8 @@
 
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
+import { API_BASE } from '../../lib/api';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -14,7 +14,7 @@ export default function LoginPage() {
   async function requestCode(event: FormEvent) {
     event.preventDefault(); setBusy(true); setMessage('');
     try {
-      const response = await fetch(`${API}/auth/otp/request`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, purpose }) });
+      const response = await fetch(API_BASE + '/auth/otp/request', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, purpose }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message ?? 'Could not request a code.');
       if (data.developmentCode) setMessage(`Development code: ${data.developmentCode}`);
@@ -25,11 +25,10 @@ export default function LoginPage() {
   async function verifyCode(event: FormEvent) {
     event.preventDefault(); setBusy(true); setMessage('');
     try {
-      const response = await fetch(`${API}/auth/otp/verify`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, purpose, code }) });
+      const response = await fetch(API_BASE + '/auth/otp/verify', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, purpose, code }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message ?? 'Code verification failed.');
       sessionStorage.setItem('ykbAccessToken', data.accessToken);
-      sessionStorage.setItem('ykbRefreshToken', data.refreshToken);
       window.location.href = '/wallet';
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not verify the code.'); }
     finally { setBusy(false); }
