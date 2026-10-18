@@ -37,6 +37,9 @@ jobs:
       - run: pnpm typecheck
         env:
           DATABASE_URL: postgresql://ykb:ykb_test_password@localhost:5432/ykb_test?schema=public
+      - run: pnpm build
+        env:
+          DATABASE_URL: postgresql://ykb:ykb_test_password@localhost:5432/ykb_test?schema=public
       - run: pnpm lint
         env:
           DATABASE_URL: postgresql://ykb:ykb_test_password@localhost:5432/ykb_test?schema=public
