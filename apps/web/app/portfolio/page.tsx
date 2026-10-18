@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { authenticatedFetch } from '../lib/api';
+import { authenticatedFetch } from '../../lib/api';
 
 type Position = { id: string; outcome: string; shares: string; market: { id: string; playerName: string; statLabel: string; lineValue: string; teamName: string; opponentName: string } };
 type Trade = { id: string; outcome: string; side: string; shares: string; grossAmountKobo: string; feeKobo: string; netAmountKobo: string; createdAt: string; market: { id: string; playerName: string; statLabel: string; lineValue: string } };
