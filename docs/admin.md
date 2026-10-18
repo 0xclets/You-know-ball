@@ -13,5 +13,8 @@
 - Close a market if it should stop taking trades.
 - After kickoff, settle using the verified OVER or UNDER result. Settlement credits winning virtual positions through balanced ledger transactions. Settled markets cannot be traded again.
 
+## Football data integration
+YKB includes a server-side API-Football v3 adapter for fixture and fixture-player-stat lookup. Set `FOOTBALL_API_KEY` in the API environment; optional `FOOTBALL_API_BASE_URL` defaults to `https://v3.football.api-sports.io`. The key is never sent to the browser. See the [official API-Football documentation](https://api-sports.io/documentation/football/v3). Provider coverage, quota, and player-stat availability depend on the provider plan. The admin screen can search fixtures and copy verified fixture/player details into a draft; it does not automatically publish markets or settle results.
+
 ## Important
-The admin settlement action is manual; YKB is not connected to a live football-data or player-stat provider yet. Independently verify results before settlement. Real-money payments and trading remain disabled and require security plus Nigerian legal/regulatory review.
+The admin settlement action is manual; independently verify results before settlement. Real-money payments and trading remain disabled and require security plus Nigerian legal/regulatory review.
