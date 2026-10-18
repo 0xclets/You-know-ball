@@ -19,7 +19,7 @@ YKB is a Nigerian football player-stat Over/Under market application. This repos
 
 - API-Football v3 fixture and player-stat lookup is integrated server-side. It requires `FOOTBALL_API_KEY`; no provider key is configured by default. Administrators still review and publish markets manually and must settle with verified results. No live market appears until an administrator creates and opens it.
 - SMS delivery requires a provider adapter and configured credentials. Development can return an OTP code; production never returns it in the API response.
-- Refresh tokens are now stored in an HttpOnly cookie and rotated by the API; short-lived access tokens remain in browser session memory storage. Complete an independent security review, CSRF/CORS review, and production cookie-domain review before launch.
+- Refresh tokens are now stored in an HttpOnly cookie and rotated by the API; short-lived access tokens remain in browser `sessionStorage`. Complete an independent security review, CSRF/CORS review, and production cookie-domain review before launch.
 - Real-money deposits, withdrawals, and trading are disabled. Obtain Nigerian legal/regulatory advice before considering any real-money launch.
 - Redis is available in local Compose, but queue/stream processing and real-time market feeds are not yet wired up.
 
@@ -37,6 +37,10 @@ Requirements: Node.js 22+, pnpm 10+, Docker with Compose.
 8. In another terminal, create \`apps/web/.env.local\` containing \`NEXT_PUBLIC_API_URL=http://localhost:4000\`, then run \`pnpm dev:web\`.
 
 Web: \`http://localhost:3000\`; API health check: \`http://localhost:4000/health\`.
+
+## Deployment
+
+See [`docs/deployment.md`](docs/deployment.md) for the API/web Docker images and required production environment variables.
 
 ## Administrator setup
 
