@@ -109,10 +109,11 @@ export class AuthService {
         data: { consumedAt: now },
       });
       if (consumed.count !== 1) throw new UnauthorizedException('Code is invalid or expired.');
+      const shouldBeAdmin = Boolean(process.env.ADMIN_PHONE_E164 && phone === process.env.ADMIN_PHONE_E164.trim());
       let user = await tx.user.findUnique({ where: { phoneE164: phone } });
       if (!user && purpose === OtpPurpose.SIGN_IN) throw new UnauthorizedException('No account found for this number. Create an account first.');
       if (!user) {
-        user = await tx.user.create({ data: { phoneE164: phone, phoneVerifiedAt: now } });
+        user = await tx.user.create({ data: { phoneE164: phone, phoneVerifiedAt: now, ...(shouldBeAdmin ? { role: 'ADMIN' } : {}) } });
         const bonusAccount = await tx.ledgerAccount.create({ data: { kind: LedgerAccountKind.USER_BONUS, userId: user.id } });
         const clearingAccount = await tx.ledgerAccount.create({ data: { kind: LedgerAccountKind.PLATFORM_BONUS_CLEARING } });
         await tx.walletAccount.create({
@@ -132,7 +133,7 @@ export class AuthService {
           },
         });
       } else {
-        user = await tx.user.update({ where: { id: user.id }, data: { phoneVerifiedAt: user.phoneVerifiedAt ?? now } });
+        user = await tx.user.update({ where: { id: user.id }, data: { phoneVerifiedAt: user.phoneVerifiedAt ?? now, ...(shouldBeAdmin ? { role: 'ADMIN' } : {}) } });
       }
       if (user.status !== 'ACTIVE') throw new UnauthorizedException('This account is not active.');
       const rawRefresh = randomBytes(48).toString('base64url');
@@ -151,7 +152,7 @@ export class AuthService {
     const secret = process.env.ACCESS_TOKEN_SECRET;
     if (!secret || secret.length < 32) throw new ServiceUnavailableException('Access token service is not configured.');
     const accessToken = await this.jwt.signAsync(
-      { sub: result.user.id, phone: result.user.phoneE164 },
+      { sub: result.user.id, phone: result.user.phoneE164, role: result.user.role },
       { secret, expiresIn: Number(process.env.ACCESS_TOKEN_TTL_SECONDS ?? 900) },
     );
     return {
@@ -201,7 +202,7 @@ export class AuthService {
     const secret = process.env.ACCESS_TOKEN_SECRET;
     if (!secret || secret.length < 32) throw new ServiceUnavailableException('Access token service is not configured.');
     const accessToken = await this.jwt.signAsync(
-      { sub: user.id, phone: user.phoneE164 },
+      { sub: user.id, phone: user.phoneE164, role: user.role },
       { secret, expiresIn: Number(process.env.ACCESS_TOKEN_TTL_SECONDS ?? 900) },
     );
     return { accessToken, refreshToken: nextRaw, tokenType: 'Bearer', expiresIn: Number(process.env.ACCESS_TOKEN_TTL_SECONDS ?? 900) };
