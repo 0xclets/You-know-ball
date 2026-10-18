@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 
 type RouteContext = { params: Promise<{ path: string[] }> };
-const methods = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as const;
 
 async function proxyRequest(request: NextRequest, context: RouteContext) {
   const { path } = await context.params;
