@@ -1,32 +1,60 @@
 # YKB — You Know Ball
 
-YKB is a Nigerian football player-stat prediction-market application. This repository is being built phase by phase. Current milestone: Phase 1 — Foundation.
+YKB is a Nigerian football player-stat Over/Under market application. This repository contains the actual API, database schema, web app, virtual-funds market engine, and role-protected market operations. It is under active development and is **not production-ready**.
 
-## Phase 1 scope
+## Current implementation
+
 - pnpm monorepo: NestJS API, Next.js web app, shared TypeScript package
-- PostgreSQL + Prisma schema and initial migration
-- Phone OTP authentication with expiry, attempt limits, and replay prevention
-- Rotating refresh tokens with session-family revocation on reuse
-- Double-entry ledger using integer kobo
-- ₦1,000,000 virtual signup bonus, granted once per phone/account
-- Bonus and cash wallets kept separate
-- CI, lint, type-check, and test scripts
+- PostgreSQL + Prisma migrations and local PostgreSQL/Redis Compose services
+- Phone OTP request/verification with expiry, attempt limits, resend cooldown, one-time challenge consumption, and development-only code visibility
+- Rotating refresh tokens with reuse detection and session-family revocation
+- ₦1,000,000 virtual signup bonus, credited once to a phone-number account
+- Separate virtual bonus and cash wallets; integer-kobo ledger entries
+- LMSR binary Over/Under pricing with default ₦50,000 liquidity and a default 2% fee
+- Authenticated virtual share buys/sells, trade history, positions, and idempotency keys
+- Admin-only draft market creation, publishing, closing, and manual settlement
+- Next.js pages for markets, market detail/trading, portfolio, wallet, sign-in, account, and administration
 
-## Testing policy
-No user stake/bet limits are imposed during the testing phase. This phase does not implement trading or real-money deposits/withdrawals.
+## Current limitations
+
+- No football fixtures/player-stat provider is connected yet. Administrators must verify market details and manually enter/settle results. No live market appears until an administrator creates and opens it.
+- SMS delivery requires a provider adapter and configured credentials. Development can return an OTP code; production never returns it in the API response.
+- Refresh/access tokens are currently held in browser session storage for the testing implementation. Before production, move refresh-token handling to secure HttpOnly cookies and complete an independent security review.
+- Real-money deposits, withdrawals, and trading are disabled. Obtain Nigerian legal/regulatory advice before considering any real-money launch.
+- Redis is available in local Compose, but queue/stream processing and real-time market feeds are not yet wired up.
 
 ## Local development
+
 Requirements: Node.js 22+, pnpm 10+, Docker with Compose.
 
-1. `corepack enable`
-2. Copy `.env.example` to `.env` and replace placeholder secrets with random values of at least 32 characters.
-3. `docker compose up -d postgres redis`
-4. `pnpm install`
-5. `pnpm db:generate`
-6. `pnpm db:deploy`
-7. Run `pnpm dev:api` and `pnpm dev:web` in separate terminals.
+1. Enable pnpm with \`corepack enable\`.
+2. Copy \`.env.example\` to the repository root as \`.env\`. Replace the placeholder secrets with independent random values of at least 32 characters.
+3. Start dependencies: \`docker compose up -d postgres redis\`.
+4. Install packages: \`pnpm install\`.
+5. Generate the Prisma client: \`pnpm db:generate\`.
+6. Apply migrations: \`pnpm db:deploy\`.
+7. In one terminal, run \`pnpm dev:api\`.
+8. In another terminal, create \`apps/web/.env.local\` containing \`NEXT_PUBLIC_API_URL=http://localhost:4000\`, then run \`pnpm dev:web\`.
 
-API: `http://localhost:4000`; web: `http://localhost:3000`.
+Web: \`http://localhost:3000\`; API health check: \`http://localhost:4000/health\`.
 
-## Important status note
-The repository must not be treated as production-ready until clean-database migrations, authentication and ledger tests, lint, and TypeScript checks pass in CI. An SMS provider is required for production OTP delivery. Real-money functionality requires security and Nigerian legal/regulatory review.
+## Administrator setup
+
+Read [\`docs/admin.md\`](docs/admin.md). Set \`ADMIN_PHONE_E164\` in the root \`.env\` to the administrator's canonical Nigerian E.164 phone number, restart the API, then complete OTP verification for that number. Admin role assignment is enforced by the API.
+
+## API endpoints
+
+- \`POST /auth/otp/request\`
+- \`POST /auth/otp/verify\`
+- \`POST /auth/refresh\`
+- \`POST /auth/logout\`
+- \`GET /wallet\` (Bearer access token)
+- \`GET /markets\`
+- \`GET /markets/:id\`
+- \`POST /markets/:id/trades\` (Bearer access token; buy/sell virtual shares)
+- \`GET /markets/me/positions\` and \`GET /markets/me/trades\` (Bearer access token)
+- \`/admin/markets\` and related open/close/settle endpoints (ADMIN role required)
+
+## Verification status
+
+GitHub Actions runs the Prisma clean-database migration, TypeScript checks, and unit tests. Do not assume a phase is accepted until the latest CI run is green and the critical auth/ledger flows have been tested end-to-end.
