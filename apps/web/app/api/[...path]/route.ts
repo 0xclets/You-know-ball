@@ -20,7 +20,8 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   responseHeaders.delete('content-encoding');
   responseHeaders.delete('content-length');
   responseHeaders.delete('transfer-encoding');
-  return new Response(await upstream.arrayBuffer(), { status: upstream.status, headers: responseHeaders });
+  const responseBody = request.method === 'HEAD' || [204, 205, 304].includes(upstream.status) ? null : await upstream.arrayBuffer();
+  return new Response(responseBody, { status: upstream.status, headers: responseHeaders });
 }
 
 export const GET = proxyRequest;
