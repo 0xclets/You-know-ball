@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { authenticatedFetch } from '../lib/api';
+import { authenticatedFetch } from '../../lib/api';
 
 type Market = { id: string; playerName: string; teamName: string; opponentName: string; competition: string; statLabel: string; lineValue: string; kickoffAt: string; status: string; feeBps: number };
 const initial = { playerName: '', teamName: '', opponentName: '', competition: 'Premier League', statKey: 'shots_on_target', statLabel: 'Shots on target', lineValue: '1.5', kickoffAt: '', liquidityNaira: '50000', feeBps: '200' };
