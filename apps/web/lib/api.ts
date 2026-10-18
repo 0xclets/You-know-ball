@@ -1,5 +1,5 @@
 const configuredApi = process.env.NEXT_PUBLIC_API_URL;
-const API = configuredApi ? (/^https?:\/\//i.test(configuredApi) ? configuredApi : 'https://' + configuredApi) : 'http://localhost:4000';
+export const API_BASE = configuredApi ? (/^https?:\/\//i.test(configuredApi) ? configuredApi : 'https://' + configuredApi) : 'http://localhost:4000';
 
 export async function authenticatedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const access = sessionStorage.getItem('ykbAccessToken');
@@ -7,13 +7,13 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}): 
     window.location.href = '/login';
     throw new Error('Please sign in.');
   }
-  let response = await fetch(API + path, {
+  let response = await fetch(API_BASE + path, {
     ...init,
     credentials: 'include',
     headers: { ...(init.headers ?? {}), authorization: 'Bearer ' + access },
   });
   if (response.status !== 401) return response;
-  const refreshResponse = await fetch(API + '/auth/refresh', {
+  const refreshResponse = await fetch(API_BASE + '/auth/refresh', {
     method: 'POST',
     credentials: 'include',
   });
