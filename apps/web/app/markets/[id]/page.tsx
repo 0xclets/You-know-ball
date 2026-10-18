@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { authenticatedFetch } from '../../lib/api';
+import { authenticatedFetch } from '../../../lib/api';
 
 type Market = { id: string; playerName: string; teamName: string; opponentName: string; competition: string; statLabel: string; lineValue: string; kickoffAt: string; status: string; liquidityNaira: string; feeBps: number; overShares: string; underShares: string; overPrice: number; underPrice: number };
 type TradeResult = { trade: { side: string; outcome: string; shares: string; grossAmountKobo: string; feeKobo: string; netAmountKobo: string }; duplicate: boolean };
