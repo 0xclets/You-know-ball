@@ -24,7 +24,7 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}): 
     throw new Error('Your session expired. Please sign in again.');
   }
   sessionStorage.setItem('ykbAccessToken', refreshData.accessToken);
-  response = await fetch(API + path, {
+  response = await fetch(API_BASE + path, {
     ...init,
     credentials: 'include',
     headers: { ...(init.headers ?? {}), authorization: 'Bearer ' + refreshData.accessToken },
