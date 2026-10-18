@@ -1,4 +1,4 @@
-import { BadGatewayException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 type ProviderPayload = { errors?: unknown; response?: unknown; results?: number; [key: string]: unknown };
 @Injectable()
@@ -34,16 +34,16 @@ export class FootballProviderService {
   }
 
   async fixtures(date: string, league?: string, season?: string) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(new Date(date + 'T00:00:00Z').getTime())) {
-      throw new BadGatewayException('Date must use YYYY-MM-DD.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(new Date(date + 'T00:00:00Z').getTime()) || new Date(date + 'T00:00:00Z').toISOString().slice(0, 10) !== date) {
+      throw new BadRequestException('Date must be a valid calendar date using YYYY-MM-DD.');
     }
-    if (league && !/^\d+$/.test(league)) throw new BadGatewayException('League must be a numeric provider ID.');
-    if (season && !/^\d{4}$/.test(season)) throw new BadGatewayException('Season must be a four-digit year.');
+    if (league && !/^\d+$/.test(league)) throw new BadRequestException('League must be a numeric provider ID.');
+    if (season && !/^\d{4}$/.test(season)) throw new BadRequestException('Season must be a four-digit year.');
     return this.get('fixtures', { date, timezone: 'Africa/Lagos', ...(league ? { league } : {}), ...(season ? { season } : {}) });
   }
 
   async fixturePlayers(fixtureId: string) {
-    if (!/^\d+$/.test(fixtureId) || Number(fixtureId) <= 0) throw new BadGatewayException('Fixture ID must be a positive provider ID.');
+    if (!/^\d+$/.test(fixtureId) || Number(fixtureId) <= 0) throw new BadRequestException('Fixture ID must be a positive provider ID.');
     return this.get('fixtures/players', { fixture: fixtureId });
   }
 }
