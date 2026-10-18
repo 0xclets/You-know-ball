@@ -74,7 +74,11 @@ export class AuthService {
       }
       return { accepted: true, expiresInSeconds: ttl };
     }
-    // Development-only convenience. Production refuses to expose the code.
+    // Only local development and automated tests may receive the OTP in the response.
+    if (process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') {
+      await this.prisma.otpChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date() } });
+      throw new ServiceUnavailableException('SMS delivery is not configured.');
+    }
     return { accepted: true, expiresInSeconds: ttl, developmentCode: code };
   }
 
