@@ -12,6 +12,7 @@ YKB is a Nigerian football player-stat Over/Under market application. This repos
 - Separate virtual bonus and cash wallets; integer-kobo ledger entries
 - LMSR binary Over/Under pricing with default ₦50,000 liquidity and a default 2% fee
 - Authenticated virtual share buys/sells, trade history, positions, and idempotency keys
+- No per-user stake limit during testing; a configurable aggregate market-liability safeguard protects the market as a whole
 - Admin-only draft market creation, publishing, closing, and manual settlement
 - Next.js pages for markets, market detail/trading, portfolio, wallet, sign-in, account, and administration
 
