@@ -67,4 +67,36 @@ describe('AuthService security controls', () => {
       where: { familyId: 'family-1', revokedAt: null },
     }));
   });
+  it('grants the virtual signup bonus only when the phone account is first created', async () => {
+    const digest = createHmac('sha256', secret).update(phone + '|SIGN_UP|123456').digest('hex');
+    const existingUser = { id: 'user-1', phoneE164: phone, phoneVerifiedAt: new Date(), status: 'ACTIVE', role: 'USER' };
+    const tx = {
+      otpChallenge: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      user: {
+        findUnique: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(existingUser),
+        create: jest.fn().mockResolvedValue(existingUser),
+        update: jest.fn().mockResolvedValue(existingUser),
+      },
+      ledgerAccount: { create: jest.fn().mockResolvedValueOnce({ id: 'bonus-account' }).mockResolvedValueOnce({ id: 'clearing-account' }) },
+      walletAccount: { create: jest.fn().mockResolvedValue({ id: 'wallet-1' }) },
+      bonusGrant: { create: jest.fn().mockResolvedValue({ id: 'grant-1' }) },
+      ledgerTransaction: { create: jest.fn().mockResolvedValue({ id: 'ledger-1' }) },
+      refreshToken: { create: jest.fn().mockResolvedValue({ id: 'refresh-1' }) },
+    };
+    (prisma.otpChallenge as { findFirst: jest.Mock }).findFirst = jest.fn().mockResolvedValue({
+      id: 'challenge-1', phoneE164: phone, purpose: 'SIGN_UP', codeDigest: digest,
+      expiresAt: new Date(Date.now() + 60_000), attempts: 0, maxAttempts: 5, consumedAt: null,
+    });
+    (prisma.$transaction as jest.Mock).mockImplementation((callback: (value: never) => Promise<unknown>) => callback(tx as never));
+    await service.verifyOtp(phone, 'SIGN_UP', '123456');
+    await service.verifyOtp(phone, 'SIGN_UP', '123456');
+    expect(tx.bonusGrant.create).toHaveBeenCalledTimes(1);
+    expect(tx.walletAccount.create).toHaveBeenCalledTimes(1);
+    expect(tx.walletAccount.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ balanceKobo: 100_000_000n }),
+    }));
+    const journal = (tx.ledgerTransaction.create as jest.Mock).mock.calls[0][0].data.entries.create;
+    expect(journal.reduce((sum: bigint, entry: { amountKobo: bigint }) => sum + entry.amountKobo, 0n)).toBe(0n);
+  });
+
 });
