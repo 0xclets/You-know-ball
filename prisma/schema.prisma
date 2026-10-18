@@ -5,11 +5,34 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-enum UserStatus { ACTIVE SUSPENDED CLOSED }
-enum WalletKind { BONUS CASH }
-enum OtpPurpose { SIGN_IN SIGN_UP }
-enum LedgerAccountKind { USER_BONUS USER_CASH PLATFORM_BONUS_CLEARING PLATFORM_CASH_CLEARING }
-enum LedgerTransactionType { SIGNUP_BONUS DEPOSIT WITHDRAWAL BET_STAKE BET_PAYOUT REFUND ADJUSTMENT }
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+enum WalletKind {
+  BONUS
+  CASH
+}
+enum OtpPurpose {
+  SIGN_IN
+  SIGN_UP
+}
+enum LedgerAccountKind {
+  USER_BONUS
+  USER_CASH
+  PLATFORM_BONUS_CLEARING
+  PLATFORM_CASH_CLEARING
+}
+enum LedgerTransactionType {
+  SIGNUP_BONUS
+  DEPOSIT
+  WITHDRAWAL
+  BET_STAKE
+  BET_PAYOUT
+  REFUND
+  ADJUSTMENT
+}
 model User {
   id String @id @default(cuid())
   phoneE164 String @unique @map("phone_e164") @db.VarChar(16)
