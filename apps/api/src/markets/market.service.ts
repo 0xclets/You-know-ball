@@ -83,6 +83,11 @@ export class MarketService {
         if (input.side === TradeSide.SELL && newQ < -1e-9) throw new BadRequestException('You do not hold enough shares to sell.');
         const newOver = input.outcome === MarketOutcome.OVER ? newQ : qOver;
         const newUnder = input.outcome === MarketOutcome.UNDER ? newQ : qUnder;
+        if (input.side === TradeSide.BUY) {
+          const marketLiabilityLimit = Number(process.env.MAX_MARKET_LIABILITY_NAIRA ?? 50000000);
+          if (!Number.isFinite(marketLiabilityLimit) || marketLiabilityLimit <= 0) throw new BadRequestException('Market liability safeguard is not configured.');
+          if (Math.max(newOver, newUnder) > marketLiabilityLimit) throw new BadRequestException('This market has reached its aggregate liability safeguard. Selling existing shares remains available.');
+        }
         const nextCost = lmsrCostNaira(newOver, newUnder, b);
         const grossKobo = input.side === TradeSide.BUY ? koboCeil(nextCost - currentCost) : koboFloor(currentCost - nextCost);
         const feeKobo = feeFor(grossKobo, market.feeBps);
@@ -146,7 +151,7 @@ export class MarketService {
 
   async myPositions(userId: string) {
     const positions = await this.prisma.marketPosition.findMany({
-      where: { userId, shares: { gt: 0 } },
+      where: { userId, shares: { gt: 0 }, market: { status: { not: MarketStatus.SETTLED } } },
       include: { market: true },
       orderBy: { updatedAt: 'desc' },
     });
