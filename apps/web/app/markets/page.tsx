@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { API_BASE } from '../../lib/api';
 
 type Market = { id: string; playerName: string; teamName: string; opponentName: string; competition: string; statLabel: string; lineValue: string; kickoffAt: string; overPrice: number; underPrice: number };
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export default function MarketsPage() {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   useEffect(() => {
-    fetch(API + '/markets').then(async response => {
+    fetch(API_BASE + '/markets').then(async response => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message ?? 'Could not load markets.');
       setMarkets(data.markets ?? []);
