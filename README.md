@@ -19,7 +19,7 @@ YKB is a Nigerian football player-stat Over/Under market application. This repos
 ## Current limitations
 
 - API-Football v3 fixture and player-stat lookup is integrated server-side. It requires `FOOTBALL_API_KEY`; no provider key is configured by default. Administrators still review and publish markets manually and must settle with verified results. No live market appears until an administrator creates and opens it.
-- SMS delivery requires a provider adapter and configured credentials. Development can return an OTP code; production never returns it in the API response.
+- Termii OTP delivery is integrated for production phone verification; set `SMS_PROVIDER=termii`, `TERMII_API_KEY`, and the account-specific `TERMII_API_BASE_URL`. Development can return a local OTP when no provider is configured; production never returns it in the API response.
 - Refresh tokens are now stored in an HttpOnly cookie and rotated by the API; short-lived access tokens remain in browser `sessionStorage`. Complete an independent security review, CSRF/CORS review, and production cookie-domain review before launch.
 - Real-money deposits, withdrawals, and trading are disabled. Obtain Nigerian legal/regulatory advice before considering any real-money launch.
 - Redis is available in local Compose, but queue/stream processing and real-time market feeds are not yet wired up.
