@@ -16,7 +16,7 @@ function cookieOptions() {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    path: '/auth',
+    path: '/',
     maxAge: Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30) * 86400000,
   };
 }
