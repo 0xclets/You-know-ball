@@ -1,15 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { API_BASE } from '../../lib/api';
 export default function AccountPage() {
   async function signOut() {
-    const refreshToken = sessionStorage.getItem('ykbRefreshToken');
     try {
-      if (refreshToken) await fetch(API + '/auth/logout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ refreshToken }) });
+      await fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' });
     } finally {
       sessionStorage.removeItem('ykbAccessToken');
-      sessionStorage.removeItem('ykbRefreshToken');
       window.location.href = '/login';
     }
   }
